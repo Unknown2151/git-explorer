@@ -1,0 +1,21 @@
+{
+  "name": "git-explorer",
+  "version": "1.0.0",
+  "description": "Tool to visualize Git history",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "private": true,
+  "devDependencies": {
+    "electron": "^37.3.0"
+  },
+  "dependencies": {
+    "dagre": "^0.8.5",
+    "isomorphic-git": "^1.33.0",
+    "svg-pan-zoom": "^3.6.2"
+  }
+}
