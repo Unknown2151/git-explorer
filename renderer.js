@@ -4,9 +4,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const selectRepoBtn = document.getElementById('select-repo-btn');
     const repoPathDiv = document.getElementById('repo-path');
     const detailsPanel = document.getElementById('commit-details');
-    const tooltip = document.getElementById('tooltip'); // This will now work correctly
+    const tooltip = document.getElementById('tooltip');
+    const searchInput = document.getElementById('search-input');
     let commitMap = new Map();
     let panZoomInstance = null;
+    let allCommitsWithLayout = [];
 
     /**
      * Renders the graph.
@@ -28,8 +30,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     line.setAttribute('y1', commit.y);
                     line.setAttribute('x2', parentCommit.x);
                     line.setAttribute('y2', parentCommit.y);
-                    line.setAttribute('stroke', '#555');
+                    line.setAttribute('stroke', commit.color || '#555');
                     line.setAttribute('stroke-width', 2);
+                    line.dataset.childOid = commit.oid;
                     svg.appendChild(line);
                 }
             });
@@ -41,7 +44,7 @@ window.addEventListener('DOMContentLoaded', () => {
             circle.setAttribute('cx', commit.x);
             circle.setAttribute('cy', commit.y);
             circle.setAttribute('r', 8);
-            circle.setAttribute('fill', '#61afef');
+            circle.setAttribute('fill', commit.color || '#61afef');
             circle.setAttribute('stroke', '#282c34');
             circle.setAttribute('stroke-width', 2);
             circle.dataset.oid = commit.oid;
@@ -78,9 +81,40 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        allCommitsWithLayout = await window.api.calculateLayout(rawCommits);
+        renderGraph(allCommitsWithLayout);
+
         const commitsWithLayout = await window.api.calculateLayout(rawCommits);
         renderGraph(commitsWithLayout);
         repoPathDiv.innerText = `Showing ${rawCommits.length} commits from: ${folderPath}`;
+    });
+
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+
+        const allCircles = svg.querySelectorAll('circle');
+        const allLines = svg.querySelectorAll('line');
+
+        if (!searchTerm) {
+            allCircles.forEach(c => c.style.opacity = '1');
+            allLines.forEach(l => l.style.opacity = '1');
+            return;
+        }
+
+        const matchingOids = new Set();
+        allCommitsWithLayout.forEach(commit => {
+            if (commit.commit.message.toLowerCase().includes(searchTerm)) {
+                matchingOids.add(commit.oid);
+            }
+        });
+
+        allCircles.forEach(circle => {
+            circle.style.opacity = matchingOids.has(circle.dataset.oid) ? '1' : '0.2';
+        });
+
+        allLines.forEach(line => {
+            line.style.opacity = matchingOids.has(line.dataset.childOid) ? '1' : '0.2';
+        });
     });
 
     svg.addEventListener('click', (event) => {

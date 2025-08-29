@@ -81,14 +81,31 @@ ipcMain.handle('git:calculateLayout', async (event, commits) => {
 
     dagre.layout(g);
 
+    const colorPalette = [
+        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231',
+        '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
+        '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000',
+        '#aaffc3', '#808000', '#ffd8b1', '#000075'
+    ];
+    const xCoords = new Map();
+    let colorIndex = 0;
+
     const commitsWithLayout = [];
     g.nodes().forEach(oid => {
         const node = g.node(oid);
         const originalCommit = commits.find(c => c.oid === oid);
+
+        if (!xCoords.has(node.x)) {
+            xCoords.set(node.x, colorIndex);
+            colorIndex = (colorIndex + 1) % colorPalette.length;
+        }
+        const assignedColorIndex = xCoords.get(node.x);
+
         commitsWithLayout.push({
             ...originalCommit,
             x: node.x,
             y: node.y,
+            color: colorPalette[assignedColorIndex]
         });
     });
 
