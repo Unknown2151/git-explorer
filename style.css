@@ -47,3 +47,29 @@ h1 {
     white-space: pre-wrap;
     pointer-events: none;
 }
+
+#changed-files-list ul {
+    list-style-type: none;
+    padding: 0;
+    font-family: monospace;
+}
+
+#changed-files-list li {
+    padding: 4px;
+    border-radius: 3px;
+    margin-bottom: 3px;
+}
+
+#changed-files-list li span {
+    display: inline-block;
+    width: 70px;
+    font-weight: bold;
+    text-align: center;
+    margin-right: 10px;
+    padding: 2px 0;
+    border-radius: 3px;
+}
+
+.file-added span { background-color: #2c6b2c; color: #a4f5a4; }
+.file-modified span { background-color: #7f7f23; color: #ffffa8; }
+.file-deleted span { background-color: #8b2c2c; color: #fba5a5; }

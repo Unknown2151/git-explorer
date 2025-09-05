@@ -111,3 +111,29 @@ ipcMain.handle('git:calculateLayout', async (event, commits) => {
 
     return commitsWithLayout;
 });
+
+const anEmptyTreeOid = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+
+ipcMain.handle('git:getCommitDiff', async (event, { folderPath, oid, parentOid }) => {
+    try {
+        const ref1 = parentOid || anEmptyTreeOid;
+        const ref2 = oid;
+
+        const fileChanges = await git.statusMatrix({
+            fs,
+            dir: folderPath,
+            ref1: ref1,
+            ref2: ref2
+        });
+
+        return fileChanges.map(([filename, head, workdir, stage]) => ({
+            filename,
+            status: head === 0 && workdir === 2 ? 'added' :
+                head === 1 && workdir === 0 ? 'deleted' :
+                    head === 1 && workdir === 2 ? 'modified' : 'unknown'
+        }));
+
+    } catch (e) {
+        return { error: e.message };
+    }
+});

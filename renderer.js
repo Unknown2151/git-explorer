@@ -1,26 +1,30 @@
 window.addEventListener('DOMContentLoaded', () => {
-
     const svg = document.getElementById('git-graph');
     const selectRepoBtn = document.getElementById('select-repo-btn');
     const repoPathDiv = document.getElementById('repo-path');
-    const detailsPanel = document.getElementById('commit-details');
-    const tooltip = document.getElementById('tooltip');
     const searchInput = document.getElementById('search-input');
+    const commitMetaDiv = document.getElementById('commit-meta');
+    const changedFilesDiv = document.getElementById('changed-files-list');
+    const tooltip = document.getElementById('tooltip');
+
     let commitMap = new Map();
     let panZoomInstance = null;
     let allCommitsWithLayout = [];
+    let currentFolderPath = '';
 
-    /**
-     * Renders the graph.
-     */
     function renderGraph(commitsWithLayout) {
         if (panZoomInstance) {
             panZoomInstance.destroy();
+            panZoomInstance = null;
         }
+
         svg.innerHTML = '';
         commitMap = new Map(commitsWithLayout.map(c => [c.oid, c]));
 
-        // Draw lines
+        if (commitsWithLayout.length === 0) {
+            return;
+        }
+
         commitsWithLayout.forEach(commit => {
             commit.commit.parent.forEach(parentOid => {
                 const parentCommit = commitMap.get(parentOid);
@@ -38,7 +42,6 @@ window.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Draw circles
         commitsWithLayout.forEach(commit => {
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', commit.x);
@@ -56,15 +59,17 @@ window.addEventListener('DOMContentLoaded', () => {
             svg.appendChild(circle);
         });
 
-        panZoomInstance = svgPanZoom('#git-graph', {
-            zoomEnabled: true,
-            controlIconsEnabled: true,
-            fit: true,
-            center: true,
-        });
+        setTimeout(() => {
+            panZoomInstance = svgPanZoom('#git-graph', {
+                zoomEnabled: true,
+                controlIconsEnabled: true,
+                fit: false,
+                center: false,
+            });
+            panZoomInstance.fit();
+            panZoomInstance.center();
+        }, 50);
     }
-
-    // --- Event Listeners ---
 
     selectRepoBtn.addEventListener('click', async () => {
         repoPathDiv.innerText = '';
@@ -72,6 +77,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const folderPath = await window.api.selectFolder();
         if (!folderPath) return;
 
+        currentFolderPath = folderPath;
         repoPathDiv.innerText = `Loading repository: ${folderPath}`;
         const rawCommits = await window.api.getLog(folderPath);
 
@@ -83,15 +89,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         allCommitsWithLayout = await window.api.calculateLayout(rawCommits);
         renderGraph(allCommitsWithLayout);
-
-        const commitsWithLayout = await window.api.calculateLayout(rawCommits);
-        renderGraph(commitsWithLayout);
-        repoPathDiv.innerText = `Showing ${rawCommits.length} commits from: ${folderPath}`;
+        repoPathDiv.innerText = `Showing ${allCommitsWithLayout.length} commits from: ${folderPath}`;
     });
 
     searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
-
         const allCircles = svg.querySelectorAll('circle');
         const allLines = svg.querySelectorAll('line');
 
@@ -117,17 +119,61 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    svg.addEventListener('click', (event) => {
-        const oid = event.target.dataset.oid;
-        if (oid) {
-            const commitData = commitMap.get(oid);
-            if (commitData) {
-                const date = new Date(commitData.commit.author.timestamp * 1000).toLocaleString();
-                detailsPanel.innerText = `Commit: ${commitData.oid}\n\n` +
-                    `Author: ${commitData.commit.author.name}\n` +
-                    `Date: ${date}\n\n` +
-                    `${commitData.commit.message}`;
+    let mouseDownPos = null;
+    svg.addEventListener('mousedown', (e) => {
+        mouseDownPos = { x: e.clientX, y: e.clientY };
+    });
+
+    svg.addEventListener('mouseup', async (e) => {
+        if (mouseDownPos) {
+            const distance = Math.sqrt(
+                Math.pow(e.clientX - mouseDownPos.x, 2) +
+                Math.pow(e.clientY - mouseDownPos.y, 2)
+            );
+            console.log('Mouse move distance:', distance);
+
+            if (distance < 5) {
+                console.log('Click detected (distance < 5)');
+                const oid = e.target.dataset.oid;
+                console.log('Target OID:', oid);
+                if (oid) {
+                    const commitData = commitMap.get(oid);
+                    console.log('Found commit data:', commitData);
+                    if (commitData) {
+                        console.log('Updating UI...');
+                        const date = new Date(commitData.commit.author.timestamp * 1000).toLocaleString();
+                        commitMetaDiv.innerHTML = `<pre>Commit: ${commitData.oid}\n\n` +
+                            `Author: ${commitData.commit.author.name}\n` +
+                            `Date: ${date}\n\n` +
+                            `${commitData.commit.message}</pre>`;
+
+                        changedFilesDiv.innerHTML = '<em>Loading changed files...</em>';
+                        const parentOid = commitData.commit.parent[0];
+                        const changedFiles = await window.api.getCommitDiff({ folderPath: currentFolderPath, oid, parentOid });
+
+                        if (changedFiles.error) {
+                            changedFilesDiv.innerHTML = `<p class="error">Could not load diff: ${changedFiles.error}</p>`;
+                            return;
+                        }
+
+                        let filesHtml = '<h4>Changed Files:</h4><ul>';
+                        changedFiles.forEach(file => {
+                            filesHtml += `<li class="file-${file.status}"><span>${file.status.toUpperCase()}</span> ${file.filename}</li>`;
+                        });
+                        filesHtml += '</ul>';
+
+                        changedFilesDiv.innerHTML = filesHtml;
+                    } else {
+                        console.error('No commit data found for this OID in the map.');
+                    }
+                } else {
+                    console.error('No OID found on the clicked target. Target was:', e.target);
+                }
+            } else {
+                console.log('Drag detected (distance >= 5), ignoring click.');
             }
+        } else {
+            console.error('Error: mouseDownPos was not set.');
         }
     });
 
