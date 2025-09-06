@@ -2,28 +2,85 @@ body {
     background-color: #282c34;
     color: #abb2bf;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    margin: 20px;
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
-h1 {
-    color: #3b93d5;
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 0 10px 10px 10px;
+    flex-shrink: 0;
 }
 
-/* Add this to style.css */
+#search-input {
+    background-color: #21252b;
+    border: 1px solid #3a3f4b;
+    color: #abb2bf;
+    padding: 5px 8px;
+    border-radius: 4px;
+    width: 250px;
+}
+
+h1, h2 {
+    color: #61afef;
+    margin-top: 0;
+}
+
 .main-container {
     display: flex;
-    gap: 20px;
+    flex-grow: 1;
+    margin-top: 10px;
+    overflow: hidden;
 }
 
 #graph-container {
     border: 1px solid #444;
-    flex-grow: 1;
+    height: 100%;
+    flex-basis: 70%;
+    flex-shrink: 0;
+    min-width: 200px;
+}
+
+#splitter {
+    width: 5px;
+    background-color: #444;
+    cursor: col-resize;
+    flex-shrink: 0;
 }
 
 #details-container {
-    width: 300px;
-    border-left: 1px solid #444;
-    padding-left: 20px;
+    border: 1px solid #444;
+    border-left: none;
+    flex: 1;
+    padding: 0 20px;
+    overflow-y: auto;
+    min-width: 200px;
+}
+
+.d2h-code-line-ctn {
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+}
+
+.back-button {
+    background-color: #5c67f2;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.back-button:hover {
+    background-color: #4a54c4;
 }
 
 #git-graph circle {
@@ -32,7 +89,7 @@ h1 {
 }
 
 #git-graph circle:hover {
-    r: 10px; /* Make the circle slightly larger on hover */
+    r: 10px;
 }
 
 .tooltip {
@@ -73,3 +130,64 @@ h1 {
 .file-added span { background-color: #2c6b2c; color: #a4f5a4; }
 .file-modified span { background-color: #7f7f23; color: #ffffa8; }
 .file-deleted span { background-color: #8b2c2c; color: #fba5a5; }
+
+.file-diff-link {
+    cursor: pointer;
+}
+
+.file-diff-link:hover {
+    background-color: #3a3f4b;
+}
+
+.commit-meta-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.meta-label {
+    font-weight: bold;
+    color: #61afef;
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.meta-value {
+    color: #abb2bf;
+}
+
+.monospace {
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.commit-message {
+    background-color: #21252b;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 15px;
+    white-space: pre-wrap;
+    font-family: inherit;
+    color: #abb2bf;
+}
+
+.copy-button {
+    background: none;
+    border: none;
+    color: #5c67f2;
+    cursor: pointer;
+    padding: 2px 6px;
+    margin-left: 8px;
+    border-radius: 4px;
+}
+
+.copy-button:hover {
+    background-color: #3a3f4b;
+}
+
+.copy-button svg {
+    vertical-align: middle;
+}
