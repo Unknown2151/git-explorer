@@ -4,6 +4,8 @@ const git = require('isomorphic-git');
 const fs = require('fs');
 const dagre = require('dagre');
 const Diff = require('diff');
+const { spawn } = require('child_process');
+const registerGitHandlers = require('./handlers/gitHandlers');
 
 const createWindow = () => {
     const win = new BrowserWindow({
@@ -19,6 +21,9 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
+    // Register additional git handlers (status, stage, unstage, commit)
+    registerGitHandlers({ ipcMain, spawn, fs, path, git, dagre, Diff, BrowserWindow, utilityProcess });
+    
     createWindow();
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();

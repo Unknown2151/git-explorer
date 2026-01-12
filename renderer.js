@@ -227,6 +227,47 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Basic tab wiring: show/hide panels when top buttons clicked
+    function showPanel(panelId) {
+        const panelIds = ['graph-container','staging-panel','stashes-panel','prs-panel','journal-panel','worktrees-panel','file-history-panel','bisect-panel','signing-panel','submodule-panel','remotes-panel','ignore-panel','review-panel'];
+        panelIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.style.display = (id === panelId) ? 'block' : 'none';
+        });
+    }
+
+    const tabBindings = {
+        'tab-graph': 'graph-container',
+        'tab-staging': 'staging-panel',
+        'tab-stashes': 'stashes-panel',
+        'tab-prs': 'prs-panel',
+        'tab-journal': 'journal-panel',
+        'tab-worktrees': 'worktrees-panel',
+        'tab-file-history': 'file-history-panel',
+        'tab-bisect': 'bisect-panel',
+        'tab-signing': 'signing-panel',
+        'tab-submodules': 'submodule-panel',
+        'tab-remotes': 'remotes-panel',
+        'tab-ignore': 'ignore-panel',
+        'tab-review': 'review-panel'
+    };
+
+    Object.keys(tabBindings).forEach(tabId => {
+        const btn = document.getElementById(tabId);
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+            const panelId = tabBindings[tabId];
+            showPanel(panelId);
+            // attempt to call refresh functions if available
+            try {
+                if (panelId === 'staging-panel' && typeof window.refreshStaging === 'function') await window.refreshStaging();
+                if (panelId === 'prs-panel' && typeof window.refreshPrs === 'function') await window.refreshPrs();
+                if (panelId === 'stashes-panel' && typeof window.refreshStashes === 'function') await window.refreshStashes();
+            } catch (e) { /* ignore refresh errors */ }
+        });
+    });
+
     splitter.addEventListener('mousedown', (e) => {
         e.preventDefault();
         window.addEventListener('mousemove', resize);

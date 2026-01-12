@@ -9,15 +9,66 @@
 </head>
 
 <body>
-<h1>Visual Git Explorer</h1>
-<div class="controls">
-    <button id="select-repo-btn">Select Repository</button>
-    <input type="text" id="search-input" placeholder="Filter by commit message...">
-    <p id="repo-path"></p>
+<div class="top-row">
+    <div class="top-left">
+        <h1>Visual Git Explorer</h1>
+        <div class="controls">
+            <button id="select-repo-btn">Select Repository</button>
+            <input type="text" id="search-input" placeholder="Filter by commit message...">
+            <p id="repo-path"></p>
+            <div style="margin-left:16px;">
+                <button id="tab-graph" class="back-button">Graph</button>
+                <button id="tab-staging" class="back-button">Staging</button>
+                <button id="tab-stashes" class="back-button">Stashes</button>
+                <button id="tab-prs" class="back-button">Pull Requests</button>
+                <button id="tab-journal" class="back-button">Journal</button>
+                <button id="tab-worktrees" class="back-button">Worktrees</button>
+                <button id="tab-file-history" class="back-button">File History</button>
+                <button id="tab-bisect" class="back-button">Bisect</button>
+                <button id="tab-signing" class="back-button">Signing</button>
+                <button id="tab-submodules" class="back-button">Submodules</button>
+                <button id="tab-remotes" class="back-button">Remotes</button>
+                <button id="tab-ignore" class="back-button">Ignore</button>
+                <button id="tab-review" class="back-button">Review</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="top-right">
+        <div id="settings-panel" class="settings-panel">
+    <label style="margin-right:6px">Commit cache:</label>
+    <input id="commit-cache-size" type="number" min="10" max="5000" style="width:72px;" />
+    <label style="margin:0 6px">File cache:</label>
+    <input id="file-cache-size" type="number" min="50" max="50000" style="width:72px;" />
+    <button id="apply-cache-btn" class="back-button" style="margin-left:8px;">Apply</button>
+    <label style="margin-left:8px; font-size:12px;">
+        <input id="use-native-git" type="checkbox" style="vertical-align:middle;"/> Use native git
+    </label>
+    <label style="margin-left:8px; font-size:12px;">
+        Preview view:
+        <select id="preview-default-view" style="margin-left:6px; font-size:12px;">
+            <option value="rendered">Rendered</option>
+            <option value="raw">Raw</option>
+            <option value="side">Side-by-side</option>
+        </select>
+    </label>
+    <label style="margin-left:8px; font-size:12px;">
+        <input id="enable-heatmap" type="checkbox" style="vertical-align:middle;"/> Enable file heatmap
+    </label>
+    <div id="timing-label" style="margin-top:6px; text-align:right; font-size:11px; color:#9aa4b2"></div>
+</div>
+        </div>
+    </div>
 </div>
 
+    <div id="native-git-banner" style="display:none; position:fixed; left:0; right:0; top:32px; background:#b95c5c; color:white; padding:8px 12px; text-align:center; z-index:1300;">
+    Native Git not found on PATH. Install Git for best performance. <a id="install-git-link" href="#" style="color: #fff; text-decoration:underline;">Install Git</a>
+    <button id="dismiss-native-banner" style="margin-left:16px; background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; padding:4px 8px; border-radius:4px;">Dismiss</button>
+</div>
+<div id="cache-stats" style="position:fixed; left:16px; bottom:16px; color:#9aa4b2; font-size:12px;"></div>
+
 <div class="main-container">
-    <div id="graph-container">
+    <div id="graph-container" class="graph-scroll-container">
         <svg id="git-graph" width="800" height="600"></svg>
     </div>
 
@@ -27,13 +78,245 @@
         <h2>Commit Details</h2>
         <div id="commit-meta"></div>
         <div id="changed-files-list"></div>
+        <div id="compare-panel" style="display:none; margin-top:8px;">
+            <h3>Compare Commits</h3>
+            <div id="compare-summary" style="font-family:monospace; margin-bottom:8px;"></div>
+            <div id="compare-diff" style="max-height:400px; overflow:auto;"></div>
+        </div>
+            <div id="staging-panel" style="display:none; margin-top:8px;">
+                <h3>Staging</h3>
+                <div id="staging-files-list" style="font-family:monospace;"></div>
+                <div style="margin-top:8px;">
+                    <textarea id="commit-message" placeholder="Commit message" style="width:100%; height:80px; background:#1f2326; color:#ddd; border:1px solid #333; padding:8px;"></textarea>
+                    <div style="text-align:right; margin-top:8px; display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+                        <input id="ai-key-input" type="password" placeholder="AI API key (optional)" style="width:260px;" />
+                        <span id="ai-key-indicator" title="AI key status" style="width:10px; height:10px; border-radius:50%; display:inline-block; background:#666; margin-left:6px;"></span>
+                        <button id="ai-key-store-btn" class="back-button">Store Key</button>
+                        <button id="magic-wand-btn" class="back-button">✨ Magic Wand</button>
+                        <button id="commit-btn" class="back-button">Commit</button>
+                    </div>
+                </div>
+                <div id="stashes-panel" style="display:none; margin-top:8px;">
+                    <h3>Stashes</h3>
+                    <div id="stashes-list" style="font-family:monospace;"></div>
+                </div>
+                <!-- Cherry-pick action placeholder -->
+                <div id="cherry-actions" style="margin-top:8px;"></div>
+            </div>
+            
+            <div id="prs-panel" style="display:none; margin-top:8px;">
+                <h3>Pull Requests</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <button id="prs-refresh-btn" class="back-button">Refresh</button>
+                        <span id="prs-spinner" style="display:none; margin-left:8px; font-size:13px;">Loading…</span>
+                    </div>
+                    <div style="font-size:12px; opacity:0.9; display:flex; align-items:center; gap:6px;">
+                        <input id="github-token-input" type="password" placeholder="GitHub token (optional)" style="width:240px;" />
+                        <span id="github-token-valid-indicator" title="Token validation status" style="width:10px; height:10px; border-radius:50%; display:inline-block; background:#666; margin-left:6px;"></span>
+                        <button id="github-token-store-btn" class="back-button">Store Token</button>
+                        <button id="github-token-clear-btn" class="back-button">Clear</button>
+                        <a id="github-token-help" href="#" style="color:#9aa4b2; margin-left:8px; font-size:12px; text-decoration:underline;">How to get token</a>
+                    </div>
+                </div>
+                <div id="github-auth-message" style="font-size:12px; color:#f88; margin-bottom:6px;"></div>
+                <div id="prs-list" style="font-family:monospace;"></div>
+            </div>
+            
+            <div id="journal-panel" style="display:none; margin-top:8px;">
+                <h3>Journal (Reflog)</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <button id="journal-refresh-btn" class="back-button">Refresh</button>
+                        <span id="journal-spinner" style="display:none; margin-left:8px; font-size:13px;">Loading…</span>
+                    </div>
+                    <div style="font-size:12px; opacity:0.9;">Right-click an entry → choose Reset mode (hard/soft/keep). Click SHA to checkout.</div>
+                </div>
+                <div id="journal-list" style="font-family:monospace; max-height:360px; overflow:auto;"></div>
+            </div>
+            <div id="worktrees-panel" style="display:none; margin-top:8px;">
+                <h3>Worktrees</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <button id="worktrees-refresh-btn" class="back-button">Refresh</button>
+                    </div>
+                    <div style="font-size:12px; opacity:0.9;">
+                        <button id="worktree-add-btn" class="back-button">Add Worktree</button>
+                    </div>
+                </div>
+                <div id="worktrees-list" style="font-family:monospace; max-height:360px; overflow:auto;"></div>
+            </div>
+            
+            <!-- File History Tab -->
+            <div id="file-history-panel" style="display:none; margin-top:8px;">
+                <h3>File History</h3>
+                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                    <input id="file-history-input" type="text" placeholder="Enter filename" style="flex:1;" />
+                    <button id="file-history-btn" class="back-button">Show History</button>
+                </div>
+                <div id="file-history-list" style="font-family:monospace; max-height:360px; overflow:auto;"></div>
+            </div>
+            
+            <!-- Git Bisect Tab -->
+            <div id="bisect-panel" style="display:none; margin-top:8px;">
+                <h3>Git Bisect (Binary Search)</h3>
+                <div id="bisect-start-form" style="border:1px solid #444; padding:12px; border-radius:4px;">
+                    <div style="margin-bottom:8px;">
+                        <label>Good commit (SHA):</label>
+                        <input id="bisect-good-input" type="text" placeholder="e.g., v1.0" style="width:100%;" />
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label>Bad commit (SHA or HEAD):</label>
+                        <input id="bisect-bad-input" type="text" placeholder="HEAD" style="width:100%;" />
+                    </div>
+                    <button id="bisect-start-btn" class="back-button">Start Bisect</button>
+                </div>
+                <div id="bisect-progress" style="display:none; margin-top:12px;">
+                    <div id="bisect-current-commit" style="font-size:13px; margin-bottom:8px;"></div>
+                    <div style="display:flex; gap:8px; margin-bottom:8px;">
+                        <button id="bisect-good-btn" class="back-button">Mark Working ✓</button>
+                        <button id="bisect-bad-btn" class="back-button">Mark Broken ✗</button>
+                        <button id="bisect-reset-btn" class="back-button">Reset Bisect</button>
+                    </div>
+                    <div id="bisect-result" style="display:none; padding:8px; background:#2b3036; border:1px solid #f88; border-radius:4px; margin-top:8px;"></div>
+                </div>
+            </div>
+            
+            <!-- Signing Status Tab -->
+            <div id="signing-panel" style="display:none; margin-top:8px;">
+                <h3>Commit Signing Status</h3>
+                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                    <button id="signing-refresh-btn" class="back-button">Refresh Signing Status</button>
+                    <button id="signing-config-btn" class="back-button">Configure Signing Key</button>
+                </div>
+                <div id="signing-list" style="font-family:monospace; max-height:360px; overflow:auto;"></div>
+            </div>
+            
+            <!-- Submodule Management Tab -->
+            <div id="submodule-panel" style="display:none; margin-top:8px;">
+                <h3>Submodule Management</h3>
+                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                    <button id="submodule-status-btn" class="back-button">Refresh Status</button>
+                    <button id="submodule-init-btn" class="back-button">Initialize & Update All</button>
+                </div>
+                <div id="submodule-list" style="font-family:monospace; max-height:360px; overflow:auto;"></div>
+            </div>
+            <!-- Remotes Tab -->
+            <div id="remotes-panel" style="display:none; margin-top:8px;">
+                <h3>Remotes</h3>
+                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
+                    <button id="remotes-refresh-btn" class="back-button">Refresh</button>
+                </div>
+                <div id="remotes-list" style="font-family:monospace; max-height:360px; overflow:auto;"></div>
+            </div>
+
+            <!-- Ignore Editor Tab -->
+            <div id="ignore-panel" style="display:none; margin-top:8px;">
+                <h3>.gitignore Editor</h3>
+                <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
+                    <input id="ignore-pattern-input" placeholder="Enter pattern (e.g. *.log)" style="flex:1;" />
+                    <button id="ignore-add-btn" class="back-button">Add Pattern</button>
+                </div>
+                <div id="ignore-list" style="font-family:monospace; max-height:360px; overflow:auto;"></div>
+            </div>
+
+            <!-- Reviewer Focus Mode Tab -->
+            <div id="review-panel" style="display:none; margin-top:8px;">
+                <h3>Reviewer Focus Mode</h3>
+                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                    <button id="review-load-btn" class="back-button">Load Changed Files</button>
+                    <button id="review-clear-btn" class="back-button">Clear Reviewed</button>
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <div id="review-file-list" style="width:35%; font-family:monospace; max-height:420px; overflow:auto; background:#0b0b0b; padding:8px;"></div>
+                    <div id="review-diff-view" style="flex:1; max-height:420px; overflow:auto; background:#0b0b0b; padding:8px;"></div>
+                </div>
+            </div>
+    </div>
+</div>
+            <!-- Worktree Add modal -->
+            <div id="worktree-add-modal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#2b3036; color:#ddd; padding:14px; border-radius:8px; z-index:2005; width:520px; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+                <h3 style="margin-top:0;">Add Worktree</h3>
+                <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+                    <input id="worktree-path-input" placeholder="Path for new worktree (absolute)" style="width:100%;" />
+                    <input id="worktree-branch-input" placeholder="Branch name to checkout" style="width:100%;" />
+                </div>
+                <div style="text-align:right; margin-top:12px;">
+                    <button id="worktree-add-cancel" class="back-button">Cancel</button>
+                    <button id="worktree-add-confirm" class="back-button" style="margin-left:8px;">Add Worktree</button>
+                </div>
+            </div>
+
+<div id="tooltip" class="tooltip"></div>
+<div id="loading-spinner" class="loading-spinner" aria-hidden="true"></div>
+
+<!-- Interactive rebase modal -->
+<div id="rebase-modal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:2200;">
+    <div style="background:#1f2326; color:#ddd; width:900px; max-width:94%; margin:36px auto; padding:12px; border-radius:8px; height:80%; overflow:auto;">
+        <h3>Interactive Rebase</h3>
+        <div id="rebase-commit-list" style="margin-top:8px;"></div>
+        <div style="margin-top:12px; text-align:right;">
+            <button id="rebase-abort" class="back-button">Abort Rebase</button>
+            <button id="rebase-continue" class="back-button">Start Rebase</button>
+        </div>
     </div>
 </div>
 
-<div id="tooltip" class="tooltip"></div>
+<!-- Cache inspector modal -->
+<div id="cache-inspector" class="modal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#2b3036; color:#ddd; padding:14px; border-radius:8px; z-index:2000; width:480px; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+    <h3 style="margin-top:0;">Cache Inspector</h3>
+    <div id="cache-inspector-content" style="max-height:320px; overflow:auto; font-size:13px; color:#c9d1d9;"></div>
+    <div style="text-align:right; margin-top:12px;">
+        <button id="cache-inspector-clear" class="back-button">Clear Cache</button>
+        <button id="cache-inspector-close" class="back-button" style="margin-left:8px;">Close</button>
+    </div>
+</div>
+<!-- Conflict resolution modal -->
+<div id="conflict-modal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#2b3036; color:#ddd; padding:14px; border-radius:8px; z-index:2001; width:640px; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+    <h3>Resolve Conflicts</h3>
+    <div id="conflict-list" style="max-height:320px; overflow:auto;"></div>
+    <div style="text-align:right; margin-top:12px;"><button id="conflict-close" class="back-button">Close</button></div>
+</div>
+
+<!-- Blame viewer modal -->
+<div id="blame-modal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:2300;">
+    <div style="background:#1f2326; color:#ddd; width:900px; max-width:94%; margin:36px auto; padding:12px; border-radius:8px; height:80%; overflow:auto;">
+        <h3>Blame Viewer</h3>
+        <div id="blame-meta" style="font-size:13px; opacity:0.9; margin-bottom:8px;"></div>
+        <div id="blame-content" style="font-family:monospace; white-space:pre; overflow:auto; background:#0b0b0b; padding:8px; border:1px solid rgba(255,255,255,0.04); height:calc(100% - 80px);"></div>
+        <div style="text-align:right; margin-top:8px;"><button id="blame-close" class="back-button">Close</button></div>
+    </div>
+</div>
+
+<!-- 3-way merge editor modal -->
+<div id="threeway-merge-modal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:2350;">
+    <div style="background:#1f2326; color:#ddd; width:1000px; max-width:96%; margin:20px auto; padding:12px; border-radius:8px; height:80%; overflow:auto;">
+        <h3>3-Way Merge Editor</h3>
+        <div style="display:flex; gap:8px; height:calc(100% - 60px);">
+            <div style="flex:1; display:flex; flex-direction:column;">
+                <div style="font-size:12px; opacity:0.9; margin-bottom:6px;">Theirs (remote)</div>
+                <div id="merge-theirs-rows" style="flex:1; overflow:auto; background:#0b0b0b; padding:8px; font-family:monospace; color:#ddd;"></div>
+                <div style="margin-top:6px;"><button id="merge-copy-theirs" class="back-button">Copy Theirs → Result</button></div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column;">
+                <div style="font-size:12px; opacity:0.9; margin-bottom:6px;">Result (editable)</div>
+                <textarea id="merge-result" style="flex:1; width:100%; font-family:monospace; background:#0b0b0b; color:#ddd; padding:8px;"></textarea>
+                <div style="margin-top:6px;"><button id="merge-save" class="back-button">Save Result</button></div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column;">
+                <div style="font-size:12px; opacity:0.9; margin-bottom:6px;">Ours (local)</div>
+                <div id="merge-ours-rows" style="flex:1; overflow:auto; background:#0b0b0b; padding:8px; font-family:monospace; color:#ddd;"></div>
+                <div style="margin-top:6px;"><button id="merge-copy-ours" class="back-button">Copy Ours → Result</button></div>
+            </div>
+        </div>
+        <div style="text-align:right; margin-top:8px;">
+            <button id="merge-close" class="back-button">Close</button>
+        </div>
+    </div>
+</div>
 
 <script src="./node_modules/diff2html/bundles/js/diff2html.min.js"></script>
 <script src="./node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
-<script src="renderer.js"></script>
+<script type="module" src="renderer.js"></script>
 </body>
 </html>

@@ -14,10 +14,63 @@ body {
 .controls {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
     padding: 0 10px 10px 10px;
     flex-shrink: 0;
+    flex-wrap: wrap;
 }
+
+/* Make top controls wrap when window is narrow */
+.top-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.top-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0; /* allow children to shrink */
+    flex: 1 1 auto;
+}
+
+/* Ensure the top button group wraps and can scroll on narrow windows */
+.top-left .controls > div {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    max-width: calc(100vw - 220px);
+    overflow-x: auto;
+}
+
+.top-left .controls > div button {
+    flex: 0 0 auto;
+}
+
+.top-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #abb2bf;
+    font-size: 12px;
+    min-width: 0;
+}
+
+.settings-panel input[type="number"] {
+    width: 72px;
+}
+
+.settings-panel label { white-space: nowrap; }
 
 #search-input {
     background-color: #21252b;
@@ -26,6 +79,8 @@ body {
     padding: 5px 8px;
     border-radius: 4px;
     width: 250px;
+    min-width: 100px;
+    max-width: 38vw;
 }
 
 h1, h2 {
@@ -46,14 +101,58 @@ h1, h2 {
     flex-basis: 70%;
     flex-shrink: 0;
     min-width: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Virtual scrolling container */
+#graph-container.graph-scroll-container {
+    overflow: hidden;
+    position: relative;
+}
+
+#graph-container.graph-scroll-container #git-graph {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Allow pointer events so svg can receive clicks/hover for interactivity */
+    pointer-events: auto;
+}
+
+#graph-container.graph-scroll-container [data-virtual-spacer] {
+    width: 100%;
+    position: relative;
+}
+
+#git-graph {
+    flex: 1;
+    border: none;
+    background: transparent;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 #splitter {
-    width: 5px;
-    background-color: #444;
+    width: 12px; /* larger hit area */
+    background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.02) 50%, transparent 70%);
     cursor: col-resize;
     flex-shrink: 0;
+    display:flex;
+    align-items: center;
+    justify-content: center;
 }
+
+#splitter::before {
+    content: '';
+    width: 2px;
+    height: 60%;
+    background: #4c4c4c;
+    border-radius: 2px;
+    transition: background 120ms ease;
+}
+
+#splitter.dragging::before { background: #6c6cff; }
 
 #details-container {
     border: 1px solid #444;
@@ -63,6 +162,50 @@ h1, h2 {
     overflow-y: auto;
     min-width: 200px;
 }
+
+/* Responsive: stack panes vertically on narrow screens */
+@media (max-width: 900px) {
+    .main-container { flex-direction: column; }
+    #graph-container { width: 100% !important; height: 40vh; flex-basis: auto; }
+    #splitter { width: 100%; height: 8px; cursor: row-resize; }
+    #splitter::before { width: 60%; height: 2px; }
+    #details-container { width: 100%; min-width: 0; height: calc(60vh - 8px); }
+    /* Stack top controls and allow buttons to wrap */
+    .top-row { flex-direction: column; align-items: stretch; }
+    .controls { flex-wrap: wrap; }
+    .top-left { width: 100%; }
+    .top-right { width: 100%; display:flex; justify-content:flex-end; margin-top:6px; }
+}
+
+/* Responsive adjustments for very narrow windows */
+@media (max-width: 600px) {
+    h1, h2 { font-size: 20px; }
+    .controls { padding: 6px; }
+    .back-button { padding: 4px 6px; font-size: 12px; }
+    #search-input { max-width: 60vw; }
+    .top-row { gap: 8px; }
+    /* Make buttons wrap and be horizontally scrollable if too many */
+    .top-left .controls > div { max-width: 100%; overflow-x: auto; }
+    .top-left .controls > div::-webkit-scrollbar { height: 8px; }
+}
+
+/* Rebase modal */
+#rebase-modal { display: none; }
+#rebase-commit-list .rebase-row { display:flex; align-items:center; gap:12px; padding:8px; border:1px solid rgba(255,255,255,0.03); margin-bottom:6px; background:#111217; border-radius:4px; }
+#rebase-commit-list .rebase-row.draggable { cursor:grab; }
+#rebase-commit-list .rebase-hash { font-family:monospace; color:#9aa4b2; width:120px; flex-shrink:0; }
+#rebase-commit-list .rebase-message { flex:1; }
+#rebase-commit-list .rebase-action { width:120px; }
+
+/* RebaseEditor modal (module) */
+#rebase-editor-modal { display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:3000; }
+#rebase-editor-modal .panel { background:#1f2326; color:#ddd; width:900px; max-width:94%; margin:36px auto; padding:12px; border-radius:8px; height:80%; overflow:auto; display:flex; flex-direction:column; }
+.rebase-row { display:flex; align-items:center; gap:12px; padding:10px; border-radius:6px; background:#0f1316; border:1px solid rgba(255,255,255,0.02); margin-bottom:8px; }
+.rebase-row.draggable { cursor:grab; }
+.rebase-row.dragging { opacity:0.5; }
+.rebase-hash { font-family:monospace; color:#9aa4b2; width:110px; flex-shrink:0; }
+.rebase-message { flex:1; color:#d3d7dc; }
+.rebase-action, .rebase-action-select { width:140px; background:#202428; color:#ddd; border:1px solid rgba(255,255,255,0.03); padding:6px; border-radius:4px; }
 
 .d2h-code-line-ctn {
     white-space: pre-wrap !important;
@@ -85,11 +228,13 @@ h1, h2 {
 
 #git-graph circle {
     cursor: pointer;
-    transition: r 0.2s ease-in-out;
+    transition: transform 0.15s ease-in-out;
+    transform-origin: center;
+    transform-box: fill-box;
 }
 
 #git-graph circle:hover {
-    r: 10px;
+    transform: scale(1.25);
 }
 
 .tooltip {
@@ -103,6 +248,7 @@ h1, h2 {
     max-width: 400px;
     white-space: pre-wrap;
     pointer-events: none;
+    z-index: 1000;
 }
 
 #changed-files-list ul {
@@ -174,6 +320,14 @@ h1, h2 {
     color: #abb2bf;
 }
 
+.staging-file {
+    display:flex;
+    justify-content:space-between;
+    padding:6px;
+    border-bottom:1px solid rgba(255,255,255,0.02);
+}
+.staging-actions button { margin-left:6px; }
+
 .copy-button {
     background: none;
     border: none;
@@ -191,3 +345,57 @@ h1, h2 {
 .copy-button svg {
     vertical-align: middle;
 }
+
+/* small loading spinner */
+.loading-spinner {
+    position: fixed;
+    right: 16px;
+    top: 60px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.08);
+    border-top-color: #5c67f2;
+    animation: spin 0.8s linear infinite;
+    z-index: 1200;
+    display: none;
+}
+
+#timing-label {
+    color: #9aa4b2;
+    font-size: 11px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Clone modal styles */
+.modal-overlay { display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:3000; }
+.modal-panel { background:#1f2326; color:#ddd; width:640px; max-width:94%; margin:6% auto; padding:14px; border-radius:8px; box-shadow:0 12px 40px rgba(0,0,0,0.6); }
+.modal-panel input { background:#0b0b0b; color:#ddd; border:1px solid #333; padding:8px; border-radius:4px; }
+.modal-panel h3 { color:#61afef; margin-top:0; }
+
+/* Token-level diff highlighting in 3-way merge editor */
+.token-diff-unchanged {
+    /* no special styling */
+}
+
+.token-diff-modified-theirs {
+    background: rgba(255, 100, 100, 0.12);
+    padding: 0 2px;
+    border-radius: 2px;
+    title: 'modified';
+}
+
+.token-diff-modified-ours {
+    background: rgba(100, 255, 140, 0.12);
+    padding: 0 2px;
+    border-radius: 2px;
+    title: 'modified';
+}
+
+/* Command palette */
+#cmd-palette { box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+#cmd-palette .cmd-item { padding: 8px; border-radius:6px; cursor:pointer; display:flex; justify-content:space-between; gap:12px; }
+#cmd-palette .cmd-item:hover { background: rgba(255,255,255,0.02); }
+#cmd-palette .cmd-name { font-weight:600; }
+#cmd-palette .cmd-desc { opacity:0.75; font-size:13px; }

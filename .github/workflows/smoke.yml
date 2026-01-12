@@ -1,0 +1,21 @@
+name: Smoke tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install deps
+        run: |
+          npm ci || true
+      - name: Run smoke hunk test
+        run: |
+          bash ./scripts/smoke_hunk_test.sh
